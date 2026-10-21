@@ -14,12 +14,13 @@ public class MatchFinder {
 
     public static List<MatchResult> findTopMatches(Student me, Iterable<Student> everyone, int k) {
         PriorityQueue<MatchResult> best = new PriorityQueue<>();
+        Map<Course, Level> myLevels = me.getLevels();
 
         for (Student other : everyone) {
             if (other == me) {
                 continue;
             }
-            MatchResult result = score(me, other);
+            MatchResult result = score(me, myLevels, other);
             if (result == null) {
                 continue;
             }
@@ -36,9 +37,9 @@ public class MatchFinder {
         return sorted;
     }
 
-    private static MatchResult score(Student me, Student other) {
+    private static MatchResult score(Student me, Map<Course, Level> myLevels, Student other) {
         double courseScore = 0;
-        for (Map.Entry<Course, Level> entry : me.getLevels().entrySet()) {
+        for (Map.Entry<Course, Level> entry : myLevels.entrySet()) {
             Course course = entry.getKey();
             Level myLevel = entry.getValue();
             Level theirLevel = other.getLevel(course);
