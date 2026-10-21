@@ -27,6 +27,12 @@ public class Student {
         return Map.copyOf(levels);
     }
 
+    private final Availability availability = new Availability();
+
+    public Availability getAvailability() {
+        return availability;
+    }
+
     @Override
     public String toString() {
         return name + " " + levels;
