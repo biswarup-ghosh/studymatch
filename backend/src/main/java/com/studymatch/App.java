@@ -1,13 +1,11 @@
 package com.studymatch;
 
-/**
- * Hello world!
- *
- */
-public class App 
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello, StudyMatch" );
+public class App {
+    public static void main(String[] args) {
+        Course calculus = new Course("Calculus 1", 1, "Information Engineering");
+        Level myLevel = Level.NEED_HELP;
+
+        System.out.println(calculus);
+        System.out.println("My level: " + myLevel);
     }
 }
