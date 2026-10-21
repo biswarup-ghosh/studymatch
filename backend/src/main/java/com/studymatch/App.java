@@ -2,10 +2,14 @@ package com.studymatch;
 
 public class App {
     public static void main(String[] args) {
-        Course calculus = new Course("Calculus 1", 1, "Information Engineering");
-        Level myLevel = Level.NEED_HELP;
+        Course calculus = CourseCatalog.find("Calculus 1");
+        Course dsa = CourseCatalog.find("Data Structures and Algorithms");
 
-        System.out.println(calculus);
-        System.out.println("My level: " + myLevel);
+        Student me = new Student("Biswarup");
+        me.setLevel(dsa, Level.STRONG);
+        me.setLevel(calculus, Level.NEED_HELP);
+
+        System.out.println(me);
+        System.out.println("DSA level: " + me.getLevel(dsa));
     }
 }
