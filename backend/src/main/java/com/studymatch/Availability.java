@@ -32,4 +32,20 @@ public class Availability {
         }
         return total;
     }
+
+    public int longestSharedRun(Availability other) {
+        int longest = 0;
+        for (int day = 0; day < 7; day++) {
+            long common = days[day] & other.days[day];
+            int length = 0;
+            while (common != 0) {
+                common &= common << 1;
+                length++;
+            }
+            if (length > longest) {
+                longest = length;
+            }
+        }
+        return longest;
+    }
 }

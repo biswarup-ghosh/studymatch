@@ -11,6 +11,7 @@ public class MatchFinder {
     private static final double BOTH_NEED_HELP_POINTS = 2.0;
     private static final double SHARED_COURSE_POINTS = 1.0;
     private static final double POINTS_PER_SHARED_HOUR = 0.5;
+    private static final double POINTS_PER_RUN_HOUR = 1.0;
 
     public static List<MatchResult> findTopMatches(Student me, Iterable<Student> everyone, int k) {
         PriorityQueue<MatchResult> best = new PriorityQueue<>();
@@ -56,8 +57,11 @@ public class MatchFinder {
         if (hours == 0) {
             return null;
         }
+        int run = me.getAvailability().longestSharedRun(other.getAvailability());
 
-        double total = courseScore + hours * POINTS_PER_SHARED_HOUR;
+        double total = courseScore
+                + hours * POINTS_PER_SHARED_HOUR
+                + run * POINTS_PER_RUN_HOUR;
         return new MatchResult(other, total, hours);
     }
 
