@@ -28,3 +28,13 @@ no other departments, no mobile app.
 ## How will I know it worked?
 20 real users with completed profiles, and at least 5 study sessions
 arranged through the app.
+
+## How we will judge match quality (later, from real use)
+Signals to record, from strongest to weakest:
+1. A study session confirmed by both students.
+2. A match request accepted.
+3. A match request sent (weak: may reflect looks or list position, not fit).
+
+Also record which matches were shown, to correct for people clicking the
+top of the list. No photos in version 1, to keep choices based on courses
+and schedules. Weights are tuned only from signals 1 and 2.
