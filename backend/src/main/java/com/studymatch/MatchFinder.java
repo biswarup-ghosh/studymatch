@@ -12,6 +12,8 @@ public class MatchFinder {
     private static final double SHARED_COURSE_POINTS = 1.0;
     private static final double POINTS_PER_SHARED_HOUR = 0.5;
     private static final double POINTS_PER_RUN_HOUR = 1.0;
+    private static final double SAME_STYLE_POINTS = 0.5;
+    private static final double SAME_GOAL_POINTS = 0.5;
 
     public static List<MatchResult> findTopMatches(Student me, Iterable<Student> everyone, int k) {
         PriorityQueue<MatchResult> best = new PriorityQueue<>();
@@ -61,8 +63,20 @@ public class MatchFinder {
 
         double total = courseScore
                 + hours * POINTS_PER_SHARED_HOUR
-                + run * POINTS_PER_RUN_HOUR;
+                + run * POINTS_PER_RUN_HOUR
+                + habitPoints(me, other);
         return new MatchResult(other, total, hours);
+    }
+
+    private static double habitPoints(Student me, Student other) {
+        double points = 0;
+        if (me.getStyle() != null && me.getStyle() == other.getStyle()) {
+            points += SAME_STYLE_POINTS;
+        }
+        if (me.getGoal() != null && me.getGoal() == other.getGoal()) {
+            points += SAME_GOAL_POINTS;
+        }
+        return points;
     }
 
     private static double pointsFor(Level a, Level b) {

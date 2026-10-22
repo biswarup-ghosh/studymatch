@@ -63,4 +63,29 @@ class MatchFinderTest {
         assertEquals("A", result.get(0).getStudent().getName());
         assertEquals("B", result.get(1).getStudent().getName());
     }
+        @Test
+    void sameStyleAndGoalAddHabitBonus() {
+        Student me = student("Me", Level.NEED_HELP, 0, 19);
+        Student anna = student("Anna", Level.STRONG, 0, 19);
+        me.setStyle(StudyStyle.QUIET);
+        anna.setStyle(StudyStyle.QUIET);
+        me.setGoal(StudyGoal.PASS);
+        anna.setGoal(StudyGoal.PASS);
+
+        List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, anna), 5);
+
+        assertEquals(5.5, result.get(0).getScore(), 0.0001);
+    }
+
+    @Test
+    void blankHabitsGiveNoBonus() {
+        Student me = student("Me", Level.NEED_HELP, 0, 19);
+        Student anna = student("Anna", Level.STRONG, 0, 19);
+        me.setStyle(StudyStyle.QUIET);
+        me.setGoal(StudyGoal.PASS);
+
+        List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, anna), 5);
+
+        assertEquals(4.5, result.get(0).getScore(), 0.0001);
+    }
 }
