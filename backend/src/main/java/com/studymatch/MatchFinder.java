@@ -10,6 +10,7 @@ public class MatchFinder {
     private static final double COMPLEMENTARY_POINTS = 3.0;
     private static final double BOTH_NEED_HELP_POINTS = 2.0;
     private static final double SHARED_COURSE_POINTS = 1.0;
+    private static final double SAME_EXAM_SESSION_POINTS = 2.0;
     private static final double POINTS_PER_SHARED_HOUR = 0.5;
     private static final double POINTS_PER_RUN_HOUR = 1.0;
     private static final double SAME_STYLE_POINTS = 1.0;
@@ -46,10 +47,14 @@ public class MatchFinder {
 
         List<String> sharedCourses = new ArrayList<>();
         for (Map.Entry<Course, Level> entry : me.getLevels().entrySet()) {
-            Level theirLevel = other.getLevel(entry.getKey());
+            Course course = entry.getKey();
+            Level theirLevel = other.getLevel(course);
             if (theirLevel != null) {
-                sharedCourses.add(entry.getKey().getName()
-                        + " (" + describe(entry.getValue(), theirLevel) + ")");
+                String detail = describe(entry.getValue(), theirLevel);
+                if (sameExamSession(me, other, course)) {
+                    detail += ", same exam session";
+                }
+                sharedCourses.add(course.getName() + " (" + detail + ")");
             }
         }
         Collections.sort(sharedCourses);
@@ -70,6 +75,7 @@ public class MatchFinder {
 
     private static MatchResult score(Student me, Map<Course, Level> myLevels, Student other) {
         double courseScore = 0;
+        double examScore = 0;
         for (Map.Entry<Course, Level> entry : myLevels.entrySet()) {
             Course course = entry.getKey();
             Level myLevel = entry.getValue();
@@ -78,6 +84,9 @@ public class MatchFinder {
                 continue;
             }
             courseScore += pointsFor(myLevel, theirLevel);
+            if (sameExamSession(me, other, course)) {
+                examScore += SAME_EXAM_SESSION_POINTS;
+            }
         }
         if (courseScore == 0) {
             return null;
@@ -90,10 +99,16 @@ public class MatchFinder {
         int run = me.getAvailability().longestSharedRun(other.getAvailability());
 
         double total = courseScore
+                + examScore
                 + hours * POINTS_PER_SHARED_HOUR
                 + run * POINTS_PER_RUN_HOUR
                 + habitPoints(me, other);
         return new MatchResult(other, total, hours);
+    }
+
+    private static boolean sameExamSession(Student me, Student other, Course course) {
+        ExamSession mine = me.getExamSession(course);
+        return mine != null && mine == other.getExamSession(course);
     }
 
     private static boolean sameStyle(Student me, Student other) {

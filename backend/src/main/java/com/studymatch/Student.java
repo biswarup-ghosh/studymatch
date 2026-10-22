@@ -6,6 +6,7 @@ import java.util.Map;
 public class Student {
     private final String name;
     private final Map<Course, Level> levels = new HashMap<>();
+    private final Map<Course, ExamSession> examSessions = new HashMap<>();
     private final Availability availability = new Availability();
     private StudyStyle style;
     private StudyGoal goal;
@@ -28,6 +29,14 @@ public class Student {
 
     public Map<Course, Level> getLevels() {
         return Map.copyOf(levels);
+    }
+
+    public void setExamSession(Course course, ExamSession session) {
+        examSessions.put(course, session);
+    }
+
+    public ExamSession getExamSession(Course course) {
+        return examSessions.get(course);
     }
 
     public Availability getAvailability() {
