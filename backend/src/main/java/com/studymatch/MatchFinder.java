@@ -12,7 +12,7 @@ public class MatchFinder {
     private static final double SHARED_COURSE_POINTS = 1.0;
     private static final double POINTS_PER_SHARED_HOUR = 0.5;
     private static final double POINTS_PER_RUN_HOUR = 1.0;
-    private static final double SAME_STYLE_POINTS = 0.5;
+    private static final double SAME_STYLE_POINTS = 1.0;
     private static final double SAME_GOAL_POINTS = 0.5;
 
     public static List<MatchResult> findTopMatches(Student me, Iterable<Student> everyone, int k) {
@@ -38,6 +38,34 @@ public class MatchFinder {
         List<MatchResult> sorted = new ArrayList<>(best);
         Collections.sort(sorted, Collections.reverseOrder());
         return sorted;
+    }
+
+    public static String explain(Student me, MatchResult result) {
+        Student other = result.getStudent();
+        List<String> parts = new ArrayList<>();
+
+        List<String> sharedCourses = new ArrayList<>();
+        for (Map.Entry<Course, Level> entry : me.getLevels().entrySet()) {
+            Level theirLevel = other.getLevel(entry.getKey());
+            if (theirLevel != null) {
+                sharedCourses.add(entry.getKey().getName()
+                        + " (" + describe(entry.getValue(), theirLevel) + ")");
+            }
+        }
+        Collections.sort(sharedCourses);
+        parts.add("shared courses: " + String.join(", ", sharedCourses));
+
+        int hours = me.getAvailability().sharedHours(other.getAvailability());
+        int run = me.getAvailability().longestSharedRun(other.getAvailability());
+        parts.add("free together: " + hours + "h per week (longest block " + run + "h)");
+
+        if (sameStyle(me, other)) {
+            parts.add("same study style");
+        }
+        if (sameGoal(me, other)) {
+            parts.add("same study goal");
+        }
+        return String.join("; ", parts);
     }
 
     private static MatchResult score(Student me, Map<Course, Level> myLevels, Student other) {
@@ -68,26 +96,47 @@ public class MatchFinder {
         return new MatchResult(other, total, hours);
     }
 
+    private static boolean sameStyle(Student me, Student other) {
+        return me.getStyle() != null && me.getStyle() == other.getStyle();
+    }
+
+    private static boolean sameGoal(Student me, Student other) {
+        return me.getGoal() != null && me.getGoal() == other.getGoal();
+    }
+
     private static double habitPoints(Student me, Student other) {
         double points = 0;
-        if (me.getStyle() != null && me.getStyle() == other.getStyle()) {
+        if (sameStyle(me, other)) {
             points += SAME_STYLE_POINTS;
         }
-        if (me.getGoal() != null && me.getGoal() == other.getGoal()) {
+        if (sameGoal(me, other)) {
             points += SAME_GOAL_POINTS;
         }
         return points;
     }
 
-    private static double pointsFor(Level a, Level b) {
-        boolean complementary = (a == Level.NEED_HELP && b == Level.STRONG)
+    private static boolean isComplementary(Level a, Level b) {
+        return (a == Level.NEED_HELP && b == Level.STRONG)
                 || (a == Level.STRONG && b == Level.NEED_HELP);
-        if (complementary) {
+    }
+
+    private static double pointsFor(Level a, Level b) {
+        if (isComplementary(a, b)) {
             return COMPLEMENTARY_POINTS;
         }
         if (a == Level.NEED_HELP && b == Level.NEED_HELP) {
             return BOTH_NEED_HELP_POINTS;
         }
         return SHARED_COURSE_POINTS;
+    }
+
+    private static String describe(Level mine, Level theirs) {
+        if (isComplementary(mine, theirs)) {
+            return mine == Level.NEED_HELP ? "they can help you" : "you can help them";
+        }
+        if (mine == Level.NEED_HELP && theirs == Level.NEED_HELP) {
+            return "you both need help";
+        }
+        return "you both take it";
     }
 }

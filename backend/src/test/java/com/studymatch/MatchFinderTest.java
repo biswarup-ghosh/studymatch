@@ -63,7 +63,8 @@ class MatchFinderTest {
         assertEquals("A", result.get(0).getStudent().getName());
         assertEquals("B", result.get(1).getStudent().getName());
     }
-        @Test
+
+    @Test
     void sameStyleAndGoalAddHabitBonus() {
         Student me = student("Me", Level.NEED_HELP, 0, 19);
         Student anna = student("Anna", Level.STRONG, 0, 19);
@@ -74,7 +75,7 @@ class MatchFinderTest {
 
         List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, anna), 5);
 
-        assertEquals(5.5, result.get(0).getScore(), 0.0001);
+        assertEquals(6.0, result.get(0).getScore(), 0.0001);
     }
 
     @Test
@@ -87,5 +88,39 @@ class MatchFinderTest {
         List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, anna), 5);
 
         assertEquals(4.5, result.get(0).getScore(), 0.0001);
+    }
+
+    @Test
+    void sameStyleOutweighsSameGoal() {
+        Student me = student("Me", Level.NEED_HELP, 0, 19);
+        me.setStyle(StudyStyle.QUIET);
+        me.setGoal(StudyGoal.PASS);
+
+        Student a = student("A", Level.STRONG, 0, 19);
+        a.setStyle(StudyStyle.QUIET);
+        a.setGoal(StudyGoal.HIGH_GRADE);
+
+        Student b = student("B", Level.STRONG, 0, 19);
+        b.setStyle(StudyStyle.DISCUSSION);
+        b.setGoal(StudyGoal.PASS);
+
+        List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, b, a), 2);
+
+        assertEquals("A", result.get(0).getStudent().getName());
+        assertEquals(5.5, result.get(0).getScore(), 0.0001);
+        assertEquals(5.0, result.get(1).getScore(), 0.0001);
+    }
+
+    @Test
+    void explanationNamesCourseAndTime() {
+        Student me = student("Me", Level.NEED_HELP, 0, 19);
+        Student anna = student("Anna", Level.STRONG, 0, 19);
+
+        List<MatchResult> result = MatchFinder.findTopMatches(me, List.of(me, anna), 5);
+        String why = MatchFinder.explain(me, result.get(0));
+
+        assertTrue(why.contains("Calculus 1"));
+        assertTrue(why.contains("they can help you"));
+        assertTrue(why.contains("free together: 1h per week"));
     }
 }

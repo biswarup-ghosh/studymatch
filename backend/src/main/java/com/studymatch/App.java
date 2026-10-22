@@ -50,6 +50,7 @@ public class App {
 
         for (MatchResult result : top) {
             System.out.println(result);
+            System.out.println("   why: " + MatchFinder.explain(me, result));
         }
     }
 }
