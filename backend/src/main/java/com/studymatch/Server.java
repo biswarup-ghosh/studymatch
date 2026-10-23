@@ -1,16 +1,20 @@
 package com.studymatch;
 
 import io.javalin.Javalin;
+import io.javalin.http.staticfiles.Location;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Server {
     public static void main(String[] args) {
-        List<Student> students = FakeData.generate(1000, 42);
+        List<Student> students = new CopyOnWriteArrayList<>(FakeData.generate(1000, 42));
 
-        Javalin app = Javalin.create();
+        Javalin app = Javalin.create(config -> {
+            config.staticFiles.add("/public", Location.CLASSPATH);
+        });
 
         app.get("/api/health", ctx -> ctx.json(Map.of("status", "ok")));
 
@@ -23,6 +27,27 @@ public class Server {
                         "department", course.getDepartment()));
             }
             ctx.json(courses);
+        });
+
+        app.post("/api/students", ctx -> {
+            Student student;
+            try {
+                ProfileRequest request = ctx.bodyAsClass(ProfileRequest.class);
+                student = ProfileFactory.build(request);
+            } catch (IllegalArgumentException e) {
+                ctx.status(400).json(Map.of("error", e.getMessage()));
+                return;
+            } catch (Exception e) {
+                ctx.status(400).json(Map.of("error", "invalid request body"));
+                return;
+            }
+
+            int id;
+            synchronized (students) {
+                students.add(student);
+                id = students.size() - 1;
+            }
+            ctx.status(201).json(Map.of("id", id, "name", student.getName()));
         });
 
         app.get("/api/matches/{id}", ctx -> {

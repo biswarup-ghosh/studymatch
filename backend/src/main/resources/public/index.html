@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>StudyMatch</title>
+  <style>
+    :root {
+      --bg: #f5f6fb;
+      --card: #ffffff;
+      --text: #1d2433;
+      --muted: #667085;
+      --line: #e4e7ee;
+      --accent: #4f46e5;
+      --accent-soft: #eef0ff;
+      --on-accent: #ffffff;
+      --danger: #b42318;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1220;
+        --card: #181c2e;
+        --text: #e8ebf5;
+        --muted: #9aa3b8;
+        --line: #2a3050;
+        --accent: #8b8cff;
+        --accent-soft: #242a52;
+        --on-accent: #10122a;
+        --danger: #ff8a80;
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 760px; margin: 0 auto; padding: 0 1rem; }
+
+    .hero {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #ffffff;
+      padding: 2.5rem 0 4.5rem;
+    }
+    .hero h1 { margin: 0 0 0.5rem; font-size: 2rem; letter-spacing: -0.02em; }
+    .hero p { margin: 0; max-width: 34rem; opacity: 0.92; }
+
+    main.wrap { margin-top: -3rem; padding-bottom: 3rem; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+    }
+
+    .step + .step { margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
+    .step h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; margin: 0 0 0.35rem; }
+    .step-number {
+      display: grid; place-items: center;
+      width: 1.7rem; height: 1.7rem; border-radius: 50%;
+      background: var(--accent); color: var(--on-accent);
+      font-size: 0.85rem; font-weight: 700;
+    }
+    .hint { color: var(--muted); margin: 0 0 0.9rem; font-size: 0.92rem; }
+
+    label.field { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 600px) { .two-columns { grid-template-columns: 1fr; } }
+
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 0.6rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      font: inherit;
+    }
+    input:focus-visible, select:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .course {
+      display: grid;
+      grid-template-columns: 1fr 10rem 9.5rem;
+      gap: 0.5rem 0.75rem;
+      align-items: center;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-bottom: 0.5rem;
+    }
+    .course.active { border-color: var(--accent); background: var(--accent-soft); }
+    .course-title { display: flex; align-items: center; gap: 0.6rem; font-weight: 600; cursor: pointer; }
+    .course-title small { color: var(--muted); font-weight: 400; }
+    .course-title input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
+    .course select:disabled { opacity: 0.45; }
+    @media (max-width: 600px) {
+      .course { grid-template-columns: 1fr 1fr; }
+      .course-title { grid-column: 1 / -1; }
+    }
+
+    .grid-scroll { overflow-x: auto; }
+    .grid {
+      display: grid;
+      grid-template-columns: 3.2rem repeat(7, minmax(2.6rem, 1fr));
+      gap: 3px;
+      min-width: 21rem;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .grid .day, .grid .hour { font-size: 0.75rem; color: var(--muted); text-align: center; align-self: center; }
+    .slot {
+      height: 1.7rem;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--bg);
+      cursor: pointer;
+    }
+    .slot:hover { border-color: var(--accent); }
+    .slot.on { background: var(--accent); border-color: var(--accent); }
+
+    .btn {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 0.7rem 1.1rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .btn.secondary { background: var(--accent-soft); color: var(--accent); }
+    .btn.small { padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-top: 0.75rem; }
+    .btn.block { width: 100%; margin-top: 1.5rem; padding: 0.85rem; font-size: 1rem; }
+
+    .message { margin: 0.9rem 0 0; font-weight: 600; min-height: 1.2rem; }
+    .message.error { color: var(--danger); }
+
+    .match { display: flex; gap: 0.9rem; padding: 0.9rem 0; border-top: 1px solid var(--line); }
+    .match:first-child { border-top: 0; }
+    .avatar {
+      flex: none; display: grid; place-items: center;
+      width: 2.6rem; height: 2.6rem; border-radius: 50%;
+      background: var(--accent-soft); color: var(--accent); font-weight: 700;
+    }
+    .match-body { flex: 1; min-width: 0; }
+    .match-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .match-name { font-weight: 700; }
+    .badge {
+      background: var(--accent-soft); color: var(--accent);
+      border-radius: 999px; padding: 0.15rem 0.6rem;
+      font-size: 0.8rem; font-weight: 700;
+    }
+    .why { color: var(--muted); font-size: 0.9rem; margin-top: 0.2rem; }
+
+    .demo-row { display: flex; gap: 0.6rem; }
+    .demo-row input { max-width: 9rem; }
+    .footnote { color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 1.5rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <h1>StudyMatch</h1>
+      <p>Find a study partner who takes your courses, sits your exam session and is free when you are.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <form id="profileForm" class="card">
+      <section class="step">
+        <h2><span class="step-number">1</span> About you</h2>
+        <label class="field" for="name">Your name</label>
+        <input id="name" type="text" maxlength="50" required placeholder="For example, Marco">
+      </section>
+
+      <section class="step">
+        <h2><span class="step-number">2</span> Your courses</h2>
+        <p class="hint">Tick the courses you take, then say how it is going and when you plan to sit the exam.</p>
+        <div id="courses">Loading courses...</div>
+      </section>
+
+      <section class="step">
+        <h2><span class="step-number">3</span> When are you free?</h2>
+        <p class="hint">Click an hour to mark it free. With a mouse you can also click and drag.</p>
+        <div class="grid-scroll"><div id="grid" class="grid"></div></div>
+        <button id="clearSlots" type="button" class="btn secondary small">Clear all</button>
+      </section>
+
+      <section class="step">
+        <h2><span class="step-number">4</span> Study habits <small class="hint">(optional)</small></h2>
+        <div class="two-columns">
+          <div>
+            <label class="field" for="style">How do you like to study?</label>
+            <select id="style">
+              <option value="">No preference</option>
+              <option value="QUIET">Quietly</option>
+              <option value="DISCUSSION">Talking things through</option>
+            </select>
+          </div>
+          <div>
+            <label class="field" for="goal">Your goal</label>
+            <select id="goal">
+              <option value="">No preference</option>
+              <option value="PASS">Pass the exam</option>
+              <option value="HIGH_GRADE">Get a high grade</option>
+              <option value="DEEP_UNDERSTANDING">Really understand it</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <button id="submit" type="submit" class="btn block">Find my study partners</button>
+      <p id="message" class="message" role="alert"></p>
+    </form>
+
+    <section id="results" class="card hidden">
+      <h2 id="resultsTitle"></h2>
+      <div id="matchList"></div>
+    </section>
+
+    <section class="card">
+      <h2>Just looking?</h2>
+      <p class="hint">See the matches of an existing demo student by number.</p>
+      <div class="demo-row">
+        <input id="demoId" type="number" min="0" value="0" aria-label="Demo student number">
+        <button id="demoGo" type="button" class="btn secondary">Show matches</button>
+      </div>
+    </section>
+
+    <p class="footnote">Demo version: profiles are kept in memory and disappear when the server restarts.</p>
+  </main>
+
+  <script>
+    const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const FIRST_HOUR = 8;
+    const LAST_HOUR = 22;
+    const LEVELS = [
+      ["NEED_HELP", "I need help"],
+      ["OKAY", "I am okay"],
+      ["STRONG", "I am strong"]
+    ];
+    const SESSIONS = [
+      ["", "Exam session: not sure"],
+      ["SESSION_1", "Session 1"],
+      ["SESSION_2", "Session 2"],
+      ["SESSION_3", "Session 3"],
+      ["SESSION_4", "Session 4"]
+    ];
+
+    const form = document.getElementById("profileForm");
+    const nameInput = document.getElementById("name");
+    const coursesBox = document.getElementById("courses");
+    const gridBox = document.getElementById("grid");
+    const clearButton = document.getElementById("clearSlots");
+    const styleSelect = document.getElementById("style");
+    const goalSelect = document.getElementById("goal");
+    const submitButton = document.getElementById("submit");
+    const message = document.getElementById("message");
+    const resultsCard = document.getElementById("results");
+    const resultsTitle = document.getElementById("resultsTitle");
+    const matchList = document.getElementById("matchList");
+    const demoInput = document.getElementById("demoId");
+    const demoButton = document.getElementById("demoGo");
+
+    const courseRows = [];
+    const cells = [];
+    let paintValue = null;
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) {
+        node.className = className;
+      }
+      if (text !== undefined) {
+        node.textContent = text;
+      }
+      return node;
+    }
+
+    function addOption(select, value, label) {
+      const option = el("option", "", label);
+      option.value = value;
+      select.appendChild(option);
+    }
+
+    function showMessage(text, isError) {
+      message.textContent = text;
+      message.className = "message" + (isError ? " error" : "");
+    }
+
+    async function loadCourses() {
+      try {
+        const response = await fetch("/api/courses");
+        const courses = await response.json();
+        coursesBox.textContent = "";
+        for (const course of courses) {
+          addCourseRow(course);
+        }
+      } catch (e) {
+        coursesBox.textContent = "Could not load the course list. Is the server running?";
+      }
+    }
+
+    function addCourseRow(course) {
+      const row = el("div", "course");
+
+      const title = el("label", "course-title");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      title.appendChild(checkbox);
+      title.appendChild(document.createTextNode(course.name + " "));
+      title.appendChild(el("small", "", "Year " + course.year));
+
+      const level = el("select");
+      for (const [value, label] of LEVELS) {
+        addOption(level, value, label);
+      }
+      const session = el("select");
+      for (const [value, label] of SESSIONS) {
+        addOption(session, value, label);
+      }
+      level.disabled = true;
+      session.disabled = true;
+
+      checkbox.addEventListener("change", () => {
+        level.disabled = !checkbox.checked;
+        session.disabled = !checkbox.checked;
+        row.classList.toggle("active", checkbox.checked);
+      });
+
+      row.append(title, level, session);
+      coursesBox.appendChild(row);
+      courseRows.push({ name: course.name, checkbox, level, session });
+    }
+
+    function setCell(cell, on) {
+      cell.on = on;
+      cell.button.classList.toggle("on", on);
+      cell.button.setAttribute("aria-pressed", String(on));
+    }
+
+    function buildGrid() {
+      gridBox.appendChild(el("div"));
+      for (const day of DAYS) {
+        gridBox.appendChild(el("div", "day", day));
+      }
+      for (let hour = FIRST_HOUR; hour < LAST_HOUR; hour++) {
+        gridBox.appendChild(el("div", "hour", String(hour).padStart(2, "0") + ":00"));
+        for (let day = 0; day < 7; day++) {
+          const button = el("button", "slot");
+          button.type = "button";
+          button.setAttribute("aria-pressed", "false");
+          button.setAttribute("aria-label", DAYS[day] + " " + hour + ":00");
+          const cell = { day, hour, on: false, button };
+          cells.push(cell);
+
+          button.addEventListener("pointerdown", (event) => {
+            if (event.pointerType === "mouse" && event.button !== 0) {
+              return;
+            }
+            paintValue = !cell.on;
+            setCell(cell, paintValue);
+          });
+          button.addEventListener("pointerenter", (event) => {
+            if (paintValue !== null && event.pointerType === "mouse" && event.buttons === 1) {
+              setCell(cell, paintValue);
+            }
+          });
+          button.addEventListener("click", (event) => {
+            if (event.detail === 0) {
+              setCell(cell, !cell.on);
+            }
+          });
+          gridBox.appendChild(button);
+        }
+      }
+    }
+
+    document.addEventListener("pointerup", () => { paintValue = null; });
+    document.addEventListener("pointercancel", () => { paintValue = null; });
+    clearButton.addEventListener("click", () => {
+      for (const cell of cells) {
+        setCell(cell, false);
+      }
+    });
+
+    function matchCard(match) {
+      const card = el("div", "match");
+      card.appendChild(el("div", "avatar", match.name.charAt(0).toUpperCase()));
+
+      const body = el("div", "match-body");
+      const head = el("div", "match-head");
+      head.appendChild(el("span", "match-name", match.name));
+      head.appendChild(el("span", "badge", "Score " + match.score.toFixed(1)));
+      body.appendChild(head);
+      body.appendChild(el("div", "why", match.why));
+
+      card.appendChild(body);
+      return card;
+    }
+
+    async function showMatches(id, title) {
+      resultsCard.classList.remove("hidden");
+      resultsTitle.textContent = title;
+      matchList.textContent = "Loading...";
+      try {
+        const response = await fetch("/api/matches/" + id);
+        const data = await response.json();
+        matchList.textContent = "";
+        if (!response.ok) {
+          matchList.appendChild(el("p", "message error", data.error));
+        } else if (data.matches.length === 0) {
+          matchList.appendChild(el("p", "hint", "No matches yet. Try adding more courses or free hours."));
+        } else {
+          for (const match of data.matches) {
+            matchList.appendChild(matchCard(match));
+          }
+        }
+      } catch (e) {
+        matchList.textContent = "Something went wrong. Please try again.";
+      }
+      resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showMessage("", false);
+
+      const courses = courseRows
+        .filter((row) => row.checkbox.checked)
+        .map((row) => {
+          const entry = { course: row.name, level: row.level.value };
+          if (row.session.value) {
+            entry.session = row.session.value;
+          }
+          return entry;
+        });
+      const availability = cells
+        .filter((cell) => cell.on)
+        .map((cell) => ({ day: cell.day, hour: cell.hour }));
+
+      const body = { name: nameInput.value, courses, availability };
+      if (styleSelect.value) {
+        body.style = styleSelect.value;
+      }
+      if (goalSelect.value) {
+        body.goal = goalSelect.value;
+      }
+
+      submitButton.disabled = true;
+      try {
+        const response = await fetch("/api/students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showMessage(data.error || "Something went wrong.", true);
+          return;
+        }
+        showMessage("Profile created!", false);
+        await showMatches(data.id, "Best study partners for " + data.name);
+      } catch (e) {
+        showMessage("Could not reach the server. Is it running?", true);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    demoButton.addEventListener("click", () => {
+      const id = demoInput.value;
+      if (id === "") {
+        return;
+      }
+      showMatches(id, "Matches for demo student " + id);
+    });
+
+    buildGrid();
+    loadCourses();
+  </script>
+</body>
+</html>
