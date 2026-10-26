@@ -70,6 +70,6 @@ class ProfileFactoryTest {
     @Test
     void rejectsHourOutsideTheRange() {
         assertThrows(IllegalArgumentException.class,
-                () -> ProifleFactory.build(request("Luca", "Calculus 1", "STRONG", 3)));
+                () -> ProfileFactory.build(request("Luca", "Calculus 1", "STRONG", 3)));
     }
 }
