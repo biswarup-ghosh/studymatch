@@ -1,6 +1,7 @@
 package com.studymatch;
 
 import io.javalin.Javalin;
+import io.javalin.http.Context;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
@@ -14,6 +15,10 @@ public class AccountRoutes {
     private static final Map<String, String> WRONG_LOGIN = Map.of("error", "wrong email or password");
 
     public record Credentials(String email, String password) {
+    }
+
+    public static Long loggedInAccount(Context ctx) {
+        return ctx.sessionAttribute("accountId");
     }
 
     public static void register(Javalin app, AccountRepository accounts) {
@@ -52,11 +57,8 @@ public class AccountRoutes {
 
         app.get("/api/verify", ctx -> {
             String token = ctx.queryParam("token");
-            if (token == null || token.isBlank() || !accounts.verify(token)) {
-                ctx.status(400).json(Map.of("error", "this link is invalid or was already used"));
-                return;
-            }
-            ctx.json(Map.of("message", "Email verified. You can now log in."));
+            boolean ok = token != null && !token.isBlank() && accounts.verify(token);
+            ctx.redirect(ok ? "/?verified=1" : "/?verified=0");
         });
 
         app.post("/api/login", ctx -> {

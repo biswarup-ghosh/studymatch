@@ -27,8 +27,18 @@ public class Database {
         try (Connection connection = connect();
              Statement statement = connection.createStatement()) {
             statement.execute("""
+                    CREATE TABLE IF NOT EXISTS accounts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        email TEXT NOT NULL UNIQUE,
+                        password_hash TEXT NOT NULL,
+                        verified INTEGER NOT NULL DEFAULT 0,
+                        verification_token TEXT
+                    )
+                    """);
+            statement.execute("""
                     CREATE TABLE IF NOT EXISTS students (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        account_id INTEGER NOT NULL UNIQUE REFERENCES accounts(id),
                         name TEXT NOT NULL,
                         style TEXT,
                         goal TEXT
@@ -36,7 +46,7 @@ public class Database {
                     """);
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS student_courses (
-                        student_id INTEGER NOT NULL REFERENCES students(id),
+                        student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
                         course TEXT NOT NULL,
                         level TEXT NOT NULL,
                         exam_session TEXT,
@@ -45,19 +55,10 @@ public class Database {
                     """);
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS student_slots (
-                        student_id INTEGER NOT NULL REFERENCES students(id),
+                        student_id INTEGER NOT NULL REFERENCES students(id) ON DELETE CASCADE,
                         day INTEGER NOT NULL,
                         hour INTEGER NOT NULL,
                         PRIMARY KEY (student_id, day, hour)
-                    )
-                    """);
-            statement.execute("""
-                    CREATE TABLE IF NOT EXISTS accounts (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        email TEXT NOT NULL UNIQUE,
-                        password_hash TEXT NOT NULL,
-                        verified INTEGER NOT NULL DEFAULT 0,
-                        verification_token TEXT
                     )
                     """);
         }

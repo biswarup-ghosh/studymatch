@@ -11,17 +11,21 @@ import java.util.List;
 import java.util.Map;
 
 public class StudentRepository {
+    public record SavedStudent(long accountId, Student student) {
+    }
+
     private final Database database;
 
     public StudentRepository(Database database) {
         this.database = database;
     }
 
-    public void save(Student student) throws SQLException {
+    public void saveFor(long accountId, Student student) throws SQLException {
         try (Connection connection = database.connect()) {
             connection.setAutoCommit(false);
             try {
-                long id = insertStudent(connection, student);
+                deleteFor(connection, accountId);
+                long id = insertStudent(connection, accountId, student);
                 insertCourses(connection, id, student);
                 insertSlots(connection, id, student);
                 connection.commit();
@@ -32,13 +36,13 @@ public class StudentRepository {
         }
     }
 
-    public List<Student> loadAll() throws SQLException {
-        Map<Long, Student> byId = new LinkedHashMap<>();
+    public List<SavedStudent> loadAll() throws SQLException {
+        Map<Long, SavedStudent> byId = new LinkedHashMap<>();
         try (Connection connection = database.connect();
              Statement statement = connection.createStatement()) {
 
             try (ResultSet rows = statement.executeQuery(
-                    "SELECT id, name, style, goal FROM students ORDER BY id")) {
+                    "SELECT id, account_id, name, style, goal FROM students ORDER BY id")) {
                 while (rows.next()) {
                     Student student = new Student(rows.getString("name"));
                     String style = rows.getString("style");
@@ -49,14 +53,14 @@ public class StudentRepository {
                     if (goal != null) {
                         student.setGoal(StudyGoal.valueOf(goal));
                     }
-                    byId.put(rows.getLong("id"), student);
+                    byId.put(rows.getLong("id"), new SavedStudent(rows.getLong("account_id"), student));
                 }
             }
 
             try (ResultSet rows = statement.executeQuery(
                     "SELECT student_id, course, level, exam_session FROM student_courses")) {
                 while (rows.next()) {
-                    Student student = byId.get(rows.getLong("student_id"));
+                    Student student = byId.get(rows.getLong("student_id")).student();
                     String courseName = rows.getString("course");
                     try {
                         Course course = CourseCatalog.find(courseName);
@@ -74,7 +78,7 @@ public class StudentRepository {
             try (ResultSet rows = statement.executeQuery(
                     "SELECT student_id, day, hour FROM student_slots")) {
                 while (rows.next()) {
-                    Student student = byId.get(rows.getLong("student_id"));
+                    Student student = byId.get(rows.getLong("student_id")).student();
                     student.getAvailability().add(rows.getInt("day"), rows.getInt("hour"));
                 }
             }
@@ -82,13 +86,22 @@ public class StudentRepository {
         return new ArrayList<>(byId.values());
     }
 
-    private long insertStudent(Connection connection, Student student) throws SQLException {
-        String sql = "INSERT INTO students (name, style, goal) VALUES (?, ?, ?)";
+    private void deleteFor(Connection connection, long accountId) throws SQLException {
+        try (PreparedStatement statement =
+                     connection.prepareStatement("DELETE FROM students WHERE account_id = ?")) {
+            statement.setLong(1, accountId);
+            statement.executeUpdate();
+        }
+    }
+
+    private long insertStudent(Connection connection, long accountId, Student student) throws SQLException {
+        String sql = "INSERT INTO students (account_id, name, style, goal) VALUES (?, ?, ?, ?)";
         try (PreparedStatement statement =
                      connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            statement.setString(1, student.getName());
-            statement.setString(2, nameOf(student.getStyle()));
-            statement.setString(3, nameOf(student.getGoal()));
+            statement.setLong(1, accountId);
+            statement.setString(2, student.getName());
+            statement.setString(3, nameOf(student.getStyle()));
+            statement.setString(4, nameOf(student.getGoal()));
             statement.executeUpdate();
             try (ResultSet keys = statement.getGeneratedKeys()) {
                 keys.next();

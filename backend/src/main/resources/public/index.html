@@ -61,6 +61,35 @@
       margin-bottom: 1rem;
       box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
     }
+    .card h2 { margin-top: 0; }
+
+    .banner {
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--accent);
+    }
+    .banner.error { border-color: var(--danger); color: var(--danger); }
+
+    .tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .tab {
+      flex: 1;
+      appearance: none;
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 0.6rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+    .topbar .who { font-weight: 600; overflow-wrap: anywhere; }
 
     .step + .step { margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--line); }
     .step h2 { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; margin: 0 0 0.35rem; }
@@ -73,10 +102,11 @@
     .hint { color: var(--muted); margin: 0 0 0.9rem; font-size: 0.92rem; }
 
     label.field { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; }
+    .field-gap { margin-top: 0.9rem; }
     .two-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
     @media (max-width: 600px) { .two-columns { grid-template-columns: 1fr; } }
 
-    input[type="text"], input[type="number"], select {
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"], select {
       width: 100%;
       padding: 0.6rem 0.7rem;
       border: 1px solid var(--line);
@@ -144,8 +174,9 @@
     }
     .btn:disabled { opacity: 0.6; cursor: wait; }
     .btn.secondary { background: var(--accent-soft); color: var(--accent); }
-    .btn.small { padding: 0.4rem 0.8rem; font-size: 0.85rem; margin-top: 0.75rem; }
+    .btn.small { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
     .btn.block { width: 100%; margin-top: 1.5rem; padding: 0.85rem; font-size: 1rem; }
+    .btn.block + .btn.block { margin-top: 0.6rem; }
 
     .message { margin: 0.9rem 0 0; font-weight: 600; min-height: 1.2rem; }
     .message.error { color: var(--danger); }
@@ -182,68 +213,106 @@
   </header>
 
   <main class="wrap">
-    <form id="profileForm" class="card">
-      <section class="step">
-        <h2><span class="step-number">1</span> About you</h2>
-        <label class="field" for="name">Your name</label>
-        <input id="name" type="text" maxlength="50" required placeholder="For example, Marco">
-      </section>
+    <div id="banner" class="banner hidden" role="status"></div>
 
-      <section class="step">
-        <h2><span class="step-number">2</span> Your courses</h2>
-        <p class="hint">Tick the courses you take, then say how it is going and when you plan to sit the exam.</p>
-        <div id="courses">Loading courses...</div>
-      </section>
-
-      <section class="step">
-        <h2><span class="step-number">3</span> When are you free?</h2>
-        <p class="hint">Click an hour to mark it free. With a mouse you can also click and drag.</p>
-        <div class="grid-scroll"><div id="grid" class="grid"></div></div>
-        <button id="clearSlots" type="button" class="btn secondary small">Clear all</button>
-      </section>
-
-      <section class="step">
-        <h2><span class="step-number">4</span> Study habits <small class="hint">(optional)</small></h2>
-        <div class="two-columns">
-          <div>
-            <label class="field" for="style">How do you like to study?</label>
-            <select id="style">
-              <option value="">No preference</option>
-              <option value="QUIET">Quietly</option>
-              <option value="DISCUSSION">Talking things through</option>
-            </select>
-          </div>
-          <div>
-            <label class="field" for="goal">Your goal</label>
-            <select id="goal">
-              <option value="">No preference</option>
-              <option value="PASS">Pass the exam</option>
-              <option value="HIGH_GRADE">Get a high grade</option>
-              <option value="DEEP_UNDERSTANDING">Really understand it</option>
-            </select>
-          </div>
+    <section id="authView" class="hidden">
+      <div class="card">
+        <div class="tabs" role="tablist">
+          <button id="tabLogin" class="tab" type="button" role="tab" aria-selected="true">Log in</button>
+          <button id="tabRegister" class="tab" type="button" role="tab" aria-selected="false">Create account</button>
         </div>
-      </section>
+        <form id="authForm">
+          <label class="field" for="authEmail">University email</label>
+          <input id="authEmail" type="email" autocomplete="username" placeholder="name.surname@studenti.unipd.it" required>
 
-      <button id="submit" type="submit" class="btn block">Find my study partners</button>
-      <p id="message" class="message" role="alert"></p>
-    </form>
+          <label class="field field-gap" for="authPassword">Password</label>
+          <input id="authPassword" type="password" autocomplete="current-password" required>
+          <p id="passwordHint" class="hint hidden">Use at least 10 characters.</p>
 
-    <section id="results" class="card hidden">
-      <h2 id="resultsTitle"></h2>
-      <div id="matchList"></div>
-    </section>
+          <button id="authSubmit" type="submit" class="btn block">Log in</button>
+          <p id="authMessage" class="message" role="alert"></p>
+        </form>
+      </div>
 
-    <section class="card">
-      <h2>Just looking?</h2>
-      <p class="hint">See the matches of an existing demo student by number.</p>
-      <div class="demo-row">
-        <input id="demoId" type="number" min="0" value="0" aria-label="Demo student number">
-        <button id="demoGo" type="button" class="btn secondary">Show matches</button>
+      <div class="card">
+        <h2>Just looking?</h2>
+        <p class="hint">See the matches of a demo student by number (0 to 999).</p>
+        <div class="demo-row">
+          <input id="demoId" type="number" min="0" max="999" value="0" aria-label="Demo student number">
+          <button id="demoGo" type="button" class="btn secondary">Show matches</button>
+        </div>
+        <div id="demoList"></div>
       </div>
     </section>
 
-    <p class="footnote">Demo version: profiles are kept in memory and disappear when the server restarts.</p>
+    <section id="appView" class="hidden">
+      <div class="card topbar">
+        <span>Logged in as <span id="whoami" class="who"></span></span>
+        <button id="logout" type="button" class="btn secondary small">Log out</button>
+      </div>
+
+      <form id="profileForm" class="card hidden">
+        <h2>Your profile</h2>
+        <p id="formIntro" class="hint"></p>
+
+        <section class="step">
+          <h2><span class="step-number">1</span> About you</h2>
+          <label class="field" for="name">Your name</label>
+          <input id="name" type="text" maxlength="50" required placeholder="For example, Marco">
+          <p class="hint field-gap">This name is shown to the students you are matched with.</p>
+        </section>
+
+        <section class="step">
+          <h2><span class="step-number">2</span> Your courses</h2>
+          <p class="hint">Tick the courses you take, then say how it is going and when you plan to sit the exam.</p>
+          <div id="courses">Loading courses...</div>
+        </section>
+
+        <section class="step">
+          <h2><span class="step-number">3</span> When are you free?</h2>
+          <p class="hint">Click an hour to mark it free. With a mouse you can also click and drag.</p>
+          <div class="grid-scroll"><div id="grid" class="grid"></div></div>
+          <button id="clearSlots" type="button" class="btn secondary small field-gap">Clear all</button>
+        </section>
+
+        <section class="step">
+          <h2><span class="step-number">4</span> Study habits <small class="hint">(optional)</small></h2>
+          <div class="two-columns">
+            <div>
+              <label class="field" for="style">How do you like to study?</label>
+              <select id="style">
+                <option value="">No preference</option>
+                <option value="QUIET">Quietly</option>
+                <option value="DISCUSSION">Talking things through</option>
+              </select>
+            </div>
+            <div>
+              <label class="field" for="goal">Your goal</label>
+              <select id="goal">
+                <option value="">No preference</option>
+                <option value="PASS">Pass the exam</option>
+                <option value="HIGH_GRADE">Get a high grade</option>
+                <option value="DEEP_UNDERSTANDING">Really understand it</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <button id="saveProfile" type="submit" class="btn block">Save and find my study partners</button>
+        <button id="cancelEdit" type="button" class="btn secondary block hidden">Cancel</button>
+        <p id="formMessage" class="message" role="alert"></p>
+      </form>
+
+      <section id="matchesView" class="card hidden">
+        <div class="topbar">
+          <h2 id="matchesTitle">Your best study partners</h2>
+          <button id="editProfile" type="button" class="btn secondary small">Edit my profile</button>
+        </div>
+        <div id="matchList"></div>
+      </section>
+    </section>
+
+    <p class="footnote">Demo version: the demo students are made up, and everything is still running on your own computer.</p>
   </main>
 
   <script>
@@ -263,24 +332,47 @@
       ["SESSION_4", "Session 4"]
     ];
 
-    const form = document.getElementById("profileForm");
-    const nameInput = document.getElementById("name");
-    const coursesBox = document.getElementById("courses");
-    const gridBox = document.getElementById("grid");
-    const clearButton = document.getElementById("clearSlots");
-    const styleSelect = document.getElementById("style");
-    const goalSelect = document.getElementById("goal");
-    const submitButton = document.getElementById("submit");
-    const message = document.getElementById("message");
-    const resultsCard = document.getElementById("results");
-    const resultsTitle = document.getElementById("resultsTitle");
-    const matchList = document.getElementById("matchList");
-    const demoInput = document.getElementById("demoId");
-    const demoButton = document.getElementById("demoGo");
+    const $ = (id) => document.getElementById(id);
+
+    const banner = $("banner");
+    const authView = $("authView");
+    const tabLogin = $("tabLogin");
+    const tabRegister = $("tabRegister");
+    const authForm = $("authForm");
+    const authEmail = $("authEmail");
+    const authPassword = $("authPassword");
+    const passwordHint = $("passwordHint");
+    const authSubmit = $("authSubmit");
+    const authMessage = $("authMessage");
+    const demoId = $("demoId");
+    const demoGo = $("demoGo");
+    const demoList = $("demoList");
+
+    const appView = $("appView");
+    const whoami = $("whoami");
+    const logoutButton = $("logout");
+    const profileForm = $("profileForm");
+    const formIntro = $("formIntro");
+    const nameInput = $("name");
+    const coursesBox = $("courses");
+    const gridBox = $("grid");
+    const clearButton = $("clearSlots");
+    const styleSelect = $("style");
+    const goalSelect = $("goal");
+    const saveButton = $("saveProfile");
+    const cancelButton = $("cancelEdit");
+    const formMessage = $("formMessage");
+    const matchesView = $("matchesView");
+    const matchesTitle = $("matchesTitle");
+    const matchList = $("matchList");
+    const editButton = $("editProfile");
 
     const courseRows = [];
     const cells = [];
     let paintValue = null;
+    let authMode = "login";
+    let hasProfile = false;
+    let coursesReady = Promise.resolve();
 
     function el(tag, className, text) {
       const node = document.createElement(tag);
@@ -299,26 +391,80 @@
       select.appendChild(option);
     }
 
-    function showMessage(text, isError) {
-      message.textContent = text;
-      message.className = "message" + (isError ? " error" : "");
+    function showBanner(text, isError) {
+      banner.textContent = text;
+      banner.className = "banner" + (isError ? " error" : "");
     }
 
-    async function loadCourses() {
+    function hideBanner() {
+      banner.className = "banner hidden";
+    }
+
+    function showAuthMessage(text, isError) {
+      authMessage.textContent = text;
+      authMessage.className = "message" + (isError ? " error" : "");
+    }
+
+    function showFormMessage(text, isError) {
+      formMessage.textContent = text;
+      formMessage.className = "message" + (isError ? " error" : "");
+    }
+
+    async function api(path, options) {
       try {
-        const response = await fetch("/api/courses");
-        const courses = await response.json();
-        coursesBox.textContent = "";
-        for (const course of courses) {
-          addCourseRow(course);
+        const response = await fetch(path, options);
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = {};
         }
+        return { ok: response.ok, status: response.status, data };
       } catch (e) {
-        coursesBox.textContent = "Could not load the course list. Is the server running?";
+        return { ok: false, status: 0, data: { error: "Could not reach the server. Is it running?" } };
       }
     }
 
+    function sendJson(method, path, body) {
+      return api(path, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+    }
+
+    function setMode(mode) {
+      authMode = mode;
+      const login = mode === "login";
+      tabLogin.setAttribute("aria-selected", String(login));
+      tabRegister.setAttribute("aria-selected", String(!login));
+      authSubmit.textContent = login ? "Log in" : "Create account";
+      passwordHint.classList.toggle("hidden", login);
+      authPassword.autocomplete = login ? "current-password" : "new-password";
+      showAuthMessage("", false);
+    }
+
+    async function loadCourses() {
+      const result = await api("/api/courses");
+      if (!result.ok) {
+        coursesBox.textContent = "Could not load the course list. Is the server running?";
+        return;
+      }
+      coursesBox.textContent = "";
+      for (const course of result.data) {
+        addCourseRow(course);
+      }
+    }
+
+    function refreshRow(row) {
+      const checked = row.checkbox.checked;
+      row.level.disabled = !checked;
+      row.session.disabled = !checked;
+      row.element.classList.toggle("active", checked);
+    }
+
     function addCourseRow(course) {
-      const row = el("div", "course");
+      const element = el("div", "course");
 
       const title = el("label", "course-title");
       const checkbox = document.createElement("input");
@@ -335,18 +481,14 @@
       for (const [value, label] of SESSIONS) {
         addOption(session, value, label);
       }
-      level.disabled = true;
-      session.disabled = true;
 
-      checkbox.addEventListener("change", () => {
-        level.disabled = !checkbox.checked;
-        session.disabled = !checkbox.checked;
-        row.classList.toggle("active", checkbox.checked);
-      });
+      const row = { name: course.name, element, checkbox, level, session };
+      checkbox.addEventListener("change", () => refreshRow(row));
+      refreshRow(row);
 
-      row.append(title, level, session);
-      coursesBox.appendChild(row);
-      courseRows.push({ name: course.name, checkbox, level, session });
+      element.append(title, level, session);
+      coursesBox.appendChild(element);
+      courseRows.push(row);
     }
 
     function setCell(cell, on) {
@@ -392,56 +534,31 @@
       }
     }
 
-    document.addEventListener("pointerup", () => { paintValue = null; });
-    document.addEventListener("pointercancel", () => { paintValue = null; });
-    clearButton.addEventListener("click", () => {
+    function fillForm(profile) {
+      nameInput.value = profile.name || "";
+
+      const chosen = new Map();
+      for (const entry of profile.courses || []) {
+        chosen.set(entry.course, entry);
+      }
+      for (const row of courseRows) {
+        const entry = chosen.get(row.name);
+        row.checkbox.checked = Boolean(entry);
+        row.level.value = entry ? entry.level : "NEED_HELP";
+        row.session.value = entry && entry.session ? entry.session : "";
+        refreshRow(row);
+      }
+
+      const free = new Set((profile.availability || []).map((slot) => slot.day + "-" + slot.hour));
       for (const cell of cells) {
-        setCell(cell, false);
+        setCell(cell, free.has(cell.day + "-" + cell.hour));
       }
-    });
 
-    function matchCard(match) {
-      const card = el("div", "match");
-      card.appendChild(el("div", "avatar", match.name.charAt(0).toUpperCase()));
-
-      const body = el("div", "match-body");
-      const head = el("div", "match-head");
-      head.appendChild(el("span", "match-name", match.name));
-      head.appendChild(el("span", "badge", "Score " + match.score.toFixed(1)));
-      body.appendChild(head);
-      body.appendChild(el("div", "why", match.why));
-
-      card.appendChild(body);
-      return card;
+      styleSelect.value = profile.style || "";
+      goalSelect.value = profile.goal || "";
     }
 
-    async function showMatches(id, title) {
-      resultsCard.classList.remove("hidden");
-      resultsTitle.textContent = title;
-      matchList.textContent = "Loading...";
-      try {
-        const response = await fetch("/api/matches/" + id);
-        const data = await response.json();
-        matchList.textContent = "";
-        if (!response.ok) {
-          matchList.appendChild(el("p", "message error", data.error));
-        } else if (data.matches.length === 0) {
-          matchList.appendChild(el("p", "hint", "No matches yet. Try adding more courses or free hours."));
-        } else {
-          for (const match of data.matches) {
-            matchList.appendChild(matchCard(match));
-          }
-        }
-      } catch (e) {
-        matchList.textContent = "Something went wrong. Please try again.";
-      }
-      resultsCard.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      showMessage("", false);
-
+    function collectProfile() {
       const courses = courseRows
         .filter((row) => row.checkbox.checked)
         .map((row) => {
@@ -462,38 +579,212 @@
       if (goalSelect.value) {
         body.goal = goalSelect.value;
       }
+      return body;
+    }
 
-      submitButton.disabled = true;
-      try {
-        const response = await fetch("/api/students", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          showMessage(data.error || "Something went wrong.", true);
-          return;
-        }
-        showMessage("Profile created!", false);
-        await showMatches(data.id, "Best study partners for " + data.name);
-      } catch (e) {
-        showMessage("Could not reach the server. Is it running?", true);
-      } finally {
-        submitButton.disabled = false;
-      }
-    });
+    function matchCard(match) {
+      const card = el("div", "match");
+      card.appendChild(el("div", "avatar", match.name.charAt(0).toUpperCase()));
 
-    demoButton.addEventListener("click", () => {
-      const id = demoInput.value;
-      if (id === "") {
+      const body = el("div", "match-body");
+      const head = el("div", "match-head");
+      head.appendChild(el("span", "match-name", match.name));
+      head.appendChild(el("span", "badge", "Score " + match.score.toFixed(1)));
+      body.appendChild(head);
+      body.appendChild(el("div", "why", match.why));
+
+      card.appendChild(body);
+      return card;
+    }
+
+    function renderMatches(target, matches) {
+      target.textContent = "";
+      if (matches.length === 0) {
+        target.appendChild(el("p", "hint", "No matches yet. Try adding more courses or free hours."));
         return;
       }
-      showMatches(id, "Matches for demo student " + id);
+      for (const match of matches) {
+        target.appendChild(matchCard(match));
+      }
+    }
+
+    function showForm(intro) {
+      formIntro.textContent = intro;
+      showFormMessage("", false);
+      cancelButton.classList.toggle("hidden", !hasProfile);
+      matchesView.classList.add("hidden");
+      profileForm.classList.remove("hidden");
+    }
+
+    async function showMatches() {
+      profileForm.classList.add("hidden");
+      matchesView.classList.remove("hidden");
+      matchList.textContent = "Loading...";
+      const result = await api("/api/matches");
+      if (result.status === 401) {
+        leaveApp("Your session expired. Please log in again.", true);
+        return;
+      }
+      if (!result.ok) {
+        matchList.textContent = "";
+        matchList.appendChild(el("p", "message error", result.data.error || "Something went wrong."));
+        return;
+      }
+      matchesTitle.textContent = "Best study partners for " + result.data.student;
+      renderMatches(matchList, result.data.matches);
+    }
+
+    async function enterApp(email) {
+      whoami.textContent = email;
+      authView.classList.add("hidden");
+      appView.classList.remove("hidden");
+
+      const profile = await api("/api/profile");
+      if (profile.status === 401) {
+        leaveApp("Your session expired. Please log in again.", true);
+        return;
+      }
+      await coursesReady;
+      if (profile.ok && profile.data.exists) {
+        hasProfile = true;
+        fillForm(profile.data);
+        await showMatches();
+      } else {
+        hasProfile = false;
+        fillForm({});
+        showForm("Create your profile to see your best study partners.");
+      }
+    }
+
+    function leaveApp(text, isError) {
+      hasProfile = false;
+      appView.classList.add("hidden");
+      profileForm.classList.add("hidden");
+      matchesView.classList.add("hidden");
+      authView.classList.remove("hidden");
+      matchList.textContent = "";
+      if (text) {
+        showBanner(text, isError);
+      } else {
+        hideBanner();
+      }
+    }
+
+    function handleVerifiedParam() {
+      const verified = new URLSearchParams(window.location.search).get("verified");
+      if (verified === "1") {
+        showBanner("Email verified. You can now log in.", false);
+      } else if (verified === "0") {
+        showBanner("That verification link is invalid or was already used.", true);
+      }
+      if (verified !== null) {
+        history.replaceState(null, "", "/");
+      }
+    }
+
+    tabLogin.addEventListener("click", () => setMode("login"));
+    tabRegister.addEventListener("click", () => setMode("register"));
+
+    authForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showAuthMessage("", false);
+      authSubmit.disabled = true;
+      const body = { email: authEmail.value, password: authPassword.value };
+
+      if (authMode === "register") {
+        const result = await sendJson("POST", "/api/register", body);
+        if (result.ok) {
+          authPassword.value = "";
+          setMode("login");
+          showBanner(result.data.message + " (Development only: the link is printed in the server terminal.)", false);
+        } else {
+          showAuthMessage(result.data.error || "Something went wrong.", true);
+        }
+      } else {
+        const result = await sendJson("POST", "/api/login", body);
+        if (result.ok) {
+          authPassword.value = "";
+          hideBanner();
+          await enterApp(result.data.email);
+        } else {
+          showAuthMessage(result.data.error || "Something went wrong.", true);
+        }
+      }
+      authSubmit.disabled = false;
     });
 
-    buildGrid();
-    loadCourses();
+    logoutButton.addEventListener("click", async () => {
+      await sendJson("POST", "/api/logout", {});
+      leaveApp("You have been logged out.", false);
+    });
+
+    editButton.addEventListener("click", () => {
+      showForm("Update your details and save to refresh your matches.");
+    });
+
+    cancelButton.addEventListener("click", () => {
+      profileForm.classList.add("hidden");
+      matchesView.classList.remove("hidden");
+    });
+
+    profileForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      showFormMessage("", false);
+      saveButton.disabled = true;
+      const result = await sendJson("PUT", "/api/profile", collectProfile());
+      saveButton.disabled = false;
+
+      if (result.status === 401) {
+        leaveApp("Your session expired. Please log in again.", true);
+        return;
+      }
+      if (!result.ok) {
+        showFormMessage(result.data.error || "Something went wrong.", true);
+        return;
+      }
+      hasProfile = true;
+      await showMatches();
+    });
+
+    document.addEventListener("pointerup", () => { paintValue = null; });
+    document.addEventListener("pointercancel", () => { paintValue = null; });
+    clearButton.addEventListener("click", () => {
+      for (const cell of cells) {
+        setCell(cell, false);
+      }
+    });
+
+    demoGo.addEventListener("click", async () => {
+      demoList.textContent = "";
+      if (demoId.value === "") {
+        return;
+      }
+      const result = await api("/api/matches/" + encodeURIComponent(demoId.value));
+      if (!result.ok) {
+        demoList.appendChild(el("p", "message error", result.data.error || "Something went wrong."));
+        return;
+      }
+      demoList.appendChild(el("p", "hint", "Matches for " + result.data.student + ":"));
+      const box = el("div");
+      demoList.appendChild(box);
+      renderMatches(box, result.data.matches);
+    });
+
+    async function init() {
+      buildGrid();
+      coursesReady = loadCourses();
+      setMode("login");
+      handleVerifiedParam();
+
+      const me = await api("/api/me");
+      if (me.ok) {
+        await enterApp(me.data.email);
+      } else {
+        authView.classList.remove("hidden");
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>

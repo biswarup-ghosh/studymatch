@@ -5,8 +5,10 @@ import io.javalin.http.staticfiles.Location;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Server {
@@ -15,18 +17,21 @@ public class Server {
     public static void main(String[] args) {
         Database database = new Database("jdbc:sqlite:studymatch.db");
         StudentRepository repository = new StudentRepository(database);
+        AccountRepository accounts = new AccountRepository(database);
 
         List<Student> students = new CopyOnWriteArrayList<>(FakeData.generate(FAKE_STUDENTS, 42));
+        Map<Long, Student> profileOf = new ConcurrentHashMap<>();
         try {
             database.createTables();
-            List<Student> saved = repository.loadAll();
-            students.addAll(saved);
-            System.out.println("Loaded " + saved.size() + " saved students from the database");
+            List<StudentRepository.SavedStudent> saved = repository.loadAll();
+            for (StudentRepository.SavedStudent entry : saved) {
+                students.add(entry.student());
+                profileOf.put(entry.accountId(), entry.student());
+            }
+            System.out.println("Loaded " + saved.size() + " saved profiles from the database");
         } catch (SQLException e) {
             throw new IllegalStateException("Could not open the database", e);
         }
-
-        AccountRepository accounts = new AccountRepository(database);
 
         Javalin app = Javalin.create(config -> {
             config.staticFiles.add("/public", Location.CLASSPATH);
@@ -49,7 +54,13 @@ public class Server {
             ctx.json(courses);
         });
 
-        app.post("/api/students", ctx -> {
+        app.put("/api/profile", ctx -> {
+            Long accountId = AccountRoutes.loggedInAccount(ctx);
+            if (accountId == null) {
+                ctx.status(401).json(Map.of("error", "please log in first"));
+                return;
+            }
+
             Student student;
             try {
                 ProfileRequest request = ctx.bodyAsClass(ProfileRequest.class);
@@ -62,19 +73,43 @@ public class Server {
                 return;
             }
 
-            int id;
-            try {
-                synchronized (students) {
-                    repository.save(student);
-                    students.add(student);
-                    id = students.size() - 1;
+            synchronized (students) {
+                repository.saveFor(accountId, student);
+                Student old = profileOf.put(accountId, student);
+                if (old != null) {
+                    students.remove(old);
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                ctx.status(500).json(Map.of("error", "could not save your profile, please try again"));
+                students.add(student);
+            }
+            ctx.json(Map.of("name", student.getName()));
+        });
+
+        app.get("/api/profile", ctx -> {
+            Long accountId = AccountRoutes.loggedInAccount(ctx);
+            if (accountId == null) {
+                ctx.status(401).json(Map.of("error", "please log in first"));
                 return;
             }
-            ctx.status(201).json(Map.of("id", id, "name", student.getName()));
+            Student mine = profileOf.get(accountId);
+            if (mine == null) {
+                ctx.json(Map.of("exists", false));
+            } else {
+                ctx.json(profileJson(mine));
+            }
+        });
+
+        app.get("/api/matches", ctx -> {
+            Long accountId = AccountRoutes.loggedInAccount(ctx);
+            if (accountId == null) {
+                ctx.status(401).json(Map.of("error", "please log in first"));
+                return;
+            }
+            Student me = profileOf.get(accountId);
+            if (me == null) {
+                ctx.status(404).json(Map.of("error", "create your profile first"));
+                return;
+            }
+            ctx.json(matchesJson(me, students));
         });
 
         app.get("/api/matches/{id}", ctx -> {
@@ -85,23 +120,56 @@ public class Server {
                 ctx.status(400).json(Map.of("error", "id must be a number"));
                 return;
             }
-            if (id < 0 || id >= students.size()) {
-                ctx.status(404).json(Map.of("error", "no such student"));
+            if (id < 0 || id >= FAKE_STUDENTS) {
+                ctx.status(404).json(Map.of("error", "no such demo student"));
                 return;
             }
-
-            Student me = students.get(id);
-            List<Map<String, Object>> matches = new ArrayList<>();
-            for (MatchResult result : MatchFinder.findTopMatches(me, students, 5)) {
-                matches.add(Map.of(
-                        "name", result.getStudent().getName(),
-                        "score", result.getScore(),
-                        "sharedHours", result.getSharedHours(),
-                        "why", MatchFinder.explain(me, result)));
-            }
-            ctx.json(Map.of("student", me.getName(), "matches", matches));
+            ctx.json(matchesJson(students.get(id), students));
         });
 
         app.start(7070);
+    }
+
+    private static Map<String, Object> matchesJson(Student me, List<Student> students) {
+        List<Map<String, Object>> matches = new ArrayList<>();
+        for (MatchResult result : MatchFinder.findTopMatches(me, students, 5)) {
+            matches.add(Map.of(
+                    "name", result.getStudent().getName(),
+                    "score", result.getScore(),
+                    "sharedHours", result.getSharedHours(),
+                    "why", MatchFinder.explain(me, result)));
+        }
+        return Map.of("student", me.getName(), "matches", matches);
+    }
+
+    private static Map<String, Object> profileJson(Student student) {
+        List<Map<String, Object>> courses = new ArrayList<>();
+        for (Map.Entry<Course, Level> entry : student.getLevels().entrySet()) {
+            Course course = entry.getKey();
+            ExamSession session = student.getExamSession(course);
+            Map<String, Object> item = new HashMap<>();
+            item.put("course", course.getName());
+            item.put("level", entry.getValue().name());
+            item.put("session", session == null ? null : session.name());
+            courses.add(item);
+        }
+
+        List<Map<String, Object>> slots = new ArrayList<>();
+        for (int day = 0; day < 7; day++) {
+            for (int hour = Availability.FIRST_HOUR; hour < Availability.LAST_HOUR; hour++) {
+                if (student.getAvailability().isFree(day, hour)) {
+                    slots.add(Map.of("day", day, "hour", hour));
+                }
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("exists", true);
+        result.put("name", student.getName());
+        result.put("courses", courses);
+        result.put("availability", slots);
+        result.put("style", student.getStyle() == null ? null : student.getStyle().name());
+        result.put("goal", student.getGoal() == null ? null : student.getGoal().name());
+        return result;
     }
 }
